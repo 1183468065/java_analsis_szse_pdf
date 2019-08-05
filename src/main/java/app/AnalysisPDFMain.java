@@ -9,22 +9,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AnalysisMain {
+public class AnalysisPDFMain {
 
     //pdf文件们所在目录
     private static String basePath = "src/main/resources/PDF/";
     //解析完成后，解析结果存放目录
     private static String baseAnalysisResultPath = "src/main/resources/result/";
     //pdf文件内容切割，从……
-    private static String subStrFrom1 = "内容及提供的资料";
-    //pdf文件内容切割，从……
-    private static String subStrFrom2 = "接待对象";
+    private static List<String> subStrFromList = new ArrayList<String>();
     //pdf文件内容切割，到……
-    private static String subStrTo1 = "一、";
-    //pdf文件内容切割，到……
-    private static String subStrTo2 = "一、";
+    private static List<String> subStrToList = new ArrayList<String>();
     //stock 长度
     private static int stockLen = 6;
+
+    static {
+        subStrFromList.add("内容及提供的资料");
+        subStrFromList.add("接待对象");
+
+        subStrToList.add("一、");
+        subStrToList.add("三、");
+    }
 
     public static void main(String[] args) throws Exception {
         List<String> allFilenameStocks = getAllFilenameStocks(basePath);
@@ -41,7 +45,9 @@ public class AnalysisMain {
                 }
             }
             String result2Write = sb.toString();
-            writeResultToFile(baseAnalysisResultPath + stock + ".txt", result2Write);
+            String resultName = stock + ".txt";
+            writeResultToFile(baseAnalysisResultPath + resultName, result2Write);
+            System.out.println("公司："+stock + "分析完成，写入文件" + resultName);
         }
     }
 
@@ -71,7 +77,7 @@ public class AnalysisMain {
     /**
      * 列出文件夹中所有文件名
      */
-    private static void listAllFilename(String path, List<String> filenames) {
+    protected static void listAllFilename(String path, List<String> filenames) {
         File file = new File(path);
         File[] tempList = file.listFiles();
         if (tempList == null) {
@@ -87,7 +93,7 @@ public class AnalysisMain {
         }
     }
 
-    private static List<String> getAllFilenameStocks(String path) {
+    protected static List<String> getAllFilenameStocks(String path) {
         ArrayList<String> filenames = new ArrayList<String>();
         listAllFilename(path, filenames);
         ArrayList<String> result = new ArrayList<String>();
@@ -138,21 +144,28 @@ public class AnalysisMain {
             System.out.println("文件：" + file.getName() + "无法读取内容");
             return "";
         }
-        int from = pdfContent.indexOf(subStrFrom1);
-        if (from == -1) {
-            from = pdfContent.indexOf(subStrFrom2);
+        int from = -1;
+        for (String subStrFrom : subStrFromList) {
+            from = pdfContent.indexOf(subStrFrom);
+            if (from != -1) {
+                break;
+            }
         }
         if (from == -1) {
-            System.out.println("文件：" + file.getName() + "无法找到内容切割起止位置");
+            System.out.println("文件：" + file.getName() + "无法找到内容切割起始位置");
             return "";
         }
         String fromStr = pdfContent.substring(from);
-        int to = fromStr.indexOf(subStrTo1);
-        if (to == -1) {
-            to = fromStr.indexOf(subStrTo2);
+
+        int to = -1;
+        for (String subStrTo : subStrToList) {
+            to = fromStr.indexOf(subStrTo);
+            if (to != -1) {
+                break;
+            }
         }
         if (to == -1) {
-            System.out.println("文件：" + file.getName() + "无法找到内容切割终止位置，直接窃取到文章末尾，请手动处理");
+            System.out.println("文件：" + file.getName() + "无法找到内容切割终止位置，直接截取到文章末尾，请手动处理");
             return fromStr;
         } else {
             return fromStr.substring(0, to);
