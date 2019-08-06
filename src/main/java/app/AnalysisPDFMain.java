@@ -3,6 +3,7 @@ package app;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import utils.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class AnalysisPDFMain {
     //pdf文件内容切割，到……
     private static List<String> subStrToList = new ArrayList<String>();
     //stock 长度
-    private static int stockLen = 6;
+    protected static int stockLen = 6;
 
     static {
         subStrFromList.add("内容及提供的资料");
@@ -30,11 +31,11 @@ public class AnalysisPDFMain {
         subStrToList.add("三、");
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         List<String> allFilenameStocks = getAllFilenameStocks(basePath);
         ArrayList<File> files = new ArrayList<File>();
         //加载所有file
-        listAllFiles(basePath, files);
+        FileUtil.listAllFiles(basePath, files);
         for (String stock : allFilenameStocks) {
             StringBuilder sb = new StringBuilder();
             //同一个stock的pdf结果写入同一个txt结果中
@@ -46,8 +47,10 @@ public class AnalysisPDFMain {
             }
             String result2Write = sb.toString();
             String resultName = stock + ".txt";
-            writeResultToFile(baseAnalysisResultPath + resultName, result2Write);
-            System.out.println("公司："+stock + "分析完成，写入文件" + resultName);
+            boolean writeSuc = writeResultToFile(baseAnalysisResultPath + resultName, result2Write);
+            if (writeSuc) {
+                System.out.println("公司：" + stock + "分析完成，写入文件" + resultName);
+            }
         }
     }
 
@@ -74,28 +77,9 @@ public class AnalysisPDFMain {
         }
     }
 
-    /**
-     * 列出文件夹中所有文件名
-     */
-    protected static void listAllFilename(String path, List<String> filenames) {
-        File file = new File(path);
-        File[] tempList = file.listFiles();
-        if (tempList == null) {
-            return;
-        }
-        for (int i = 0; i < tempList.length; i++) {
-            if (tempList[i].isFile()) {
-                filenames.add(tempList[i].getName());
-            }
-            if (tempList[i].isDirectory()) {
-                listAllFilename(tempList[i].getAbsolutePath(), filenames);
-            }
-        }
-    }
-
     protected static List<String> getAllFilenameStocks(String path) {
         ArrayList<String> filenames = new ArrayList<String>();
-        listAllFilename(path, filenames);
+        FileUtil.listAllFilename(path, filenames);
         ArrayList<String> result = new ArrayList<String>();
         if (filenames.size() != 0) {
             for (String filename : filenames) {
@@ -108,24 +92,6 @@ public class AnalysisPDFMain {
         return result;
     }
 
-    /**
-     * 列出文件夹中所有文件
-     */
-    private static void listAllFiles(String path, List<File> files) {
-        File file = new File(path);
-        File[] tempList = file.listFiles();
-        if (tempList == null) {
-            return;
-        }
-        for (int i = 0; i < tempList.length; i++) {
-            if (tempList[i].isFile()) {
-                files.add(tempList[i]);
-            }
-            if (tempList[i].isDirectory()) {
-                listAllFiles(tempList[i].getAbsolutePath(), files);
-            }
-        }
-    }
 
     /**
      * files subString
@@ -183,15 +149,18 @@ public class AnalysisPDFMain {
         return result;
     }
 
-    private static void writeResultToFile(String path, String data) {
+    private static boolean writeResultToFile(String path, String data) {
         try {
             File file = new File(path);
-//            if (!file.exists()) {
-//
-//            }
+            if (file.exists()) {
+                System.out.println("文件：" + path + "已存在");
+                return false;
+            }
             FileUtils.writeStringToFile(file, data);
+            return true;
         } catch (IOException e) {
             System.out.println("文件：" + path + "写入失败");
         }
+        return false;
     }
 }

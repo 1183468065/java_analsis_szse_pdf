@@ -6,6 +6,7 @@ import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import utils.FileUtil;
 import utils.StringUtil;
 
 import java.io.*;
@@ -18,7 +19,7 @@ public class AnalysisResultToExcel {
     //result文件们所在目录
     private static String basePath = "src/main/resources/result/";
     //解析完成后，解析结果存放目录
-    private static String baseAnalysisResultPath = "src/main/resources/excels/";
+    private static String baseAnalysisResultPath = "src/main/resources/excel/";
     //stock 长度
     private static int stockLen = 6;
 
@@ -31,93 +32,104 @@ public class AnalysisResultToExcel {
     private static final String time = "访问时间";
     // 接待对象
     private static final String reception = "接待对象";
-    // 访问时间
-    private static final String InstitutionID = "InstitutionID";
+
+    // 比较严格的匹配年月日
+    private static final Pattern patternYMDLong = Pattern
+            .compile("^((\\d{2}(([02468][048])|([13579][26]))[\\-\\/\\s]?((((0?[13578])|(1[02]))[\\-\\/\\s]?(" +
+                    "(0?[1-9])|([1-2][0-9])|(3[01])))|(((0?[469])|(11))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(30)))" +
+                    "|(0?2[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])))))|(\\d{2}(([02468][1235679])|([13579][01345789]))" +
+                    "[\\-\\/\\s]?((((0?[13578])|(1[02]))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(3[01])))|(((0?[469])" +
+                    "|(11))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(30)))|(0?2[\\-\\/\\s]?((0?[1-9])|(1[0-9])|" +
+                    "(2[0-8]))))))(\\s(((0?[0-9])|([1-2][0-3]))\\:([0-5]?[0-9])((\\s)|(\\:([0-5]?[0-9])))))?$");
+    // 匹配年月日
+    private static final Pattern patternYMD = Pattern
+            .compile("^((?!0000)[0-9]{4}(-|\\/|)((0[1-9]|1[0-2]|[1-9])(-|\\/|)" +
+                    "([1-9]|1[0-9]|2[0-8]|0[1-9]|1[0-9]|2[0-8])|(0[13-9]|1[0-2])-" +
+                    "(29|30)|(0[13578]|1[02])-31)|([0-9]{2}(0[48]|[2468][048]|[13579][26])|" +
+                    "(0[48]|[2468][048]|[13579][26])00)-02-29)$");
+    // 匹配年月
+    private static final Pattern patternYM = Pattern
+            .compile("^((?!0000)[0-9]{4}(-|\\/|)(([1-9]|0[1-9]|1[0-2])))$");
 
     static {
         sheetNames.add("result");
-        sheetNames.add("result2");
 
         title.add(time);
         title.add(reception);
-        title.add(InstitutionID);
     }
 
     public static void main(String[] args) throws IOException {
-//        List<String> allFilenameStocks = AnalysisPDFMain.getAllFilenameStocks(basePath);
-//        for (String stock : allFilenameStocks) {
-//
-//        }
-        String fileDir = "1.xls";
-
-        createExcelXls(fileDir, sheetNames, title);
-        List<List<String>> userList1 = new ArrayList<>();
-        ArrayList<String> list1 = new ArrayList<>();
-        list1.add("111");
-        list1.add("111");
-        list1.add("张三");
-        list1.add("张三");
-        list1.add("111！@#");
-        ArrayList<String> list2 = new ArrayList<>();
-        list2.add("222");
-        list2.add("222");
-        list2.add("张三");
-        list2.add("111！@#");
-        ArrayList<String> list3 = new ArrayList<>();
-        list3.add("33");
-        list3.add("张三");
-        list3.add("张三");
-        list3.add("111！@#");
-        userList1.add(list1);
-        userList1.add(list2);
-        userList1.add(list3);
-
-        Map<String, List<List<String>>> users = new HashMap<>();
-
-        users.put("result", userList1);
-        users.put("result2", userList1);
-
-        for (String sheetName : sheetNames) {
-            List<List<String>> datas = users.get(sheetName);
-            writeToExcelInTurn(fileDir, sheetName, datas);
-            System.out.println("成功写入文件：" + fileDir + "，sheet：" + sheetName);
+        ArrayList<File> files = new ArrayList<>();
+        FileUtil.listAllFiles(basePath, files);
+        for (File file : files) {
+            System.out.println("开始分析文件：" + file);
+            String xlsName = baseAnalysisResultPath + file.getName().substring(0, AnalysisPDFMain.stockLen) + ".xls";
+            contentToExcel(file, xlsName);
         }
+    }
 
-//        for (int j = 0; j < sheetNames.size(); j++) {
-//            writeToExcelInTurn(fileDir, sheetNames.get(j), users.get(sheetNames.get(j)));
-//            System.out.println("成功写入文件：" + fileDir + "，sheet：" + sheetNames.get(j));
-//        }
+    /**
+     * 文件分析并写入xls
+     */
+    private static boolean contentToExcel(File resultFile, String xlsPath) {
+        String txt = null;
+        try {
+            txt = FileUtils.readFileToString(resultFile).trim();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("文件：" + resultFile + "读取失败");
+            return false;
+        }
+        txt = replaceAllEnter(txt);
+        String[] split = txt.split(" ");
+        ArrayList<String> list = new ArrayList<>();
+        for (int i = 0; i < split.length; i++) {
+            String s = split[i].trim();
+            if (StringUtil.isNotEmptyOrBlank(s)) {
+                list.add(s);
+            }
+        }
+        int rowIndex = 0;//行数
+        HashMap<Integer, List<String>> dataMap = new HashMap<>();
+        //如果不是日期格式的话，就从map中取出该行数据，然后add
+        //如果是日期格式的话，就新建list加入map中
+        for (String cellData : list) {
+            cellData = cellData.replace(".", "/");//将.换成/这样excel可以格式化日期格式
+            if (patternYMD.matcher(cellData).matches() || patternYM.matcher(cellData).matches()) {
+                cellData = cellData.replace("-", "/");
+                rowIndex = rowIndex + 1;
+                List<String> rowData = dataMap.get(rowIndex);
+                if (rowData == null) {
+                    rowData = new ArrayList<>();
+                }
+                rowData.add(cellData);
+                dataMap.put(rowIndex, rowData);
 
-//        String txt = FileUtils.readFileToString(new File("src/main/resources/result/000001.txt")).trim();
-//        txt = replaceAllEnter(txt);
-//        String[] split = txt.split(" ");
-//        ArrayList<String> list = new ArrayList<>();
-//        for (int i = 0; i < split.length; i++) {
-//            String s = split[i].trim();
-//            if (StringUtil.isNotEmptyOrBlank(s)) {
-//                list.add(s);
-//            }
-//        }
-//        Pattern pattern = Pattern
-//                .compile("^((\\d{2}(([02468][048])|([13579][26]))[\\-\\/\\s]?((((0?[13578])|(1[02]))[\\-\\/\\s]?(" +
-//                        "(0?[1-9])|([1-2][0-9])|(3[01])))|(((0?[469])|(11))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(30)
-//                        ))" +
-//                        "|(0?2[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])))))|(\\d{2}(([02468][1235679])|
-//                        ([13579][01345789]))" +
-//                        "[\\-\\/\\s]?((((0?[13578])|(1[02]))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(3[01])))|((
-//                        (0?[469])" +
-//                        "|(11))[\\-\\/\\s]?((0?[1-9])|([1-2][0-9])|(30)))|(0?2[\\-\\/\\s]?((0?[1-9])|(1[0-9])|" +
-//                        "(2[0-8]))))))(\\s(((0?[0-9])|([1-2][0-3]))\\:([0-5]?[0-9])((\\s)|(\\:([0-5]?[0-9])))))?$");
-//        for (String s : list) {
-//            System.out.println(s);
-//            Matcher m2 = pattern.matcher(s);
-//            if (m2.matches()) {
-////                System.out.println("是日期"+s);
-//            } else {
-////                System.out.println("不是日期" + s);
-//            }
-//        }
-
+            } else {
+                List<String> rowData = dataMap.get(rowIndex);
+                if (rowData != null) {
+                    rowData.add(cellData);
+                } else {
+                    System.out.println("忽略掉单元格数据：" + cellData);
+                }
+            }
+        }
+        ArrayList<List<String>> dataList = new ArrayList<>();
+        for (Integer row : dataMap.keySet()) {
+            List<String> rowList = dataMap.get(row);
+            if (rowList != null) {
+                dataList.add(rowList);
+            }
+        }
+        boolean succ = createExcelXls(xlsPath, sheetNames, title);
+        HashMap<String, List<List<String>>> map = new HashMap<>();
+        map.put("result", dataList);//result sheet中的数据
+        if (succ) {
+            for (String key : map.keySet()) {
+                writeToExcelInTurn(xlsPath, key, map.get(key));
+            }
+        }
+        return true;
     }
 
     private static String replaceAllEnter(String content) {
@@ -136,7 +148,22 @@ public class AnalysisResultToExcel {
      * @param sheetNames sheet names
      * @param titles     excel的第一行即表格头
      */
-    public static void createExcelXls(String fileDir, List<String> sheetNames, List<String> titles) {
+    public static boolean createExcelXls(String fileDir, List<String> sheetNames, List<String> titles) {
+        File file = new File(fileDir);
+        if (file.exists()) {
+            System.out.println("文件：" + fileDir + "已存在");
+            return false;
+        }
+        if(!file.exists()){
+            //先得到文件的上级目录，并创建上级目录，在创建文件
+            file.getParentFile().mkdir();
+            try {
+                //创建文件
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         //创建workbook
         workbook = new HSSFWorkbook();
         //新建文件
@@ -153,7 +180,7 @@ public class AnalysisResultToExcel {
                 //添加表头, 创建第一行
                 row = workbook.getSheet(sheetNames.get(i)).createRow(0);
                 row.setHeight((short) (20 * 20));
-                for (short j = 0; j < title.size(); j++) {
+                for (short j = 0; j < titles.size(); j++) {
                     HSSFCell cell = row.createCell(j, CellType.BLANK);
                     cell.setCellValue(titles.get(j));
                     cell.setCellStyle(cellStyle);
@@ -161,6 +188,7 @@ public class AnalysisResultToExcel {
                 fileOutputStream = new FileOutputStream(fileDir);
                 workbook.write(fileOutputStream);
             }
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -172,6 +200,7 @@ public class AnalysisResultToExcel {
                 }
             }
         }
+        return false;
     }
 
     /**
