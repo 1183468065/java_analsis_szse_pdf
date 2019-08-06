@@ -60,7 +60,7 @@ public class AnalysisFinal {
     }
 
     public static void main(String[] args) {
-        File file = new File("src/main/resources/excel/000001.xls");
+        File file = new File("src/main/resources/excel/000002.xls");
         List<List<Map<Integer, String>>> sheetsData = readXls(file);
         //结果
         ArrayList<List<String>> rowResults = new ArrayList<>();
