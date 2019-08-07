@@ -1,5 +1,6 @@
 package app;
 
+import factory.PDFReaderFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -61,13 +62,13 @@ public class AnalysisPDFMain {
      */
     private static String READPDF(File inputFile) {
         //创建文档对象
-        PDDocument doc = null;
-        String content = "";
+        PDDocument doc;
+        String content;
         try {
             //加载一个pdf对象
             doc = PDDocument.load(inputFile);
             //获取一个PDFTextStripper文本剥离对象
-            PDFTextStripper textStripper = new PDFTextStripper();
+            PDFTextStripper textStripper = PDFReaderFactory.getPDFTextStripper();
             content = textStripper.getText(doc);
             doc.close();
             return content;

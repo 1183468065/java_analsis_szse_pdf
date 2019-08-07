@@ -5,19 +5,20 @@ import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFRow;
 import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import utils.FileUtil;
 import utils.StringUtil;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-public class AnalysisFinal {
+public class AnalysisExcelToFinal {
 
     private static String institutionidPropPath = "src/main/resources/institutionid.properties";
     private static Map<String, String> institutionidMap = new HashMap<>();
 
     //result文件们所在目录
-    private static String basePath = "src/main/resources/result/";
+    private static String basePath = "src/main/resources/excel/";
     //解析完成后，解析结果存放目录
     private static String baseAnalysisFinalPath = "src/main/resources/final/";
     //stock 长度
@@ -60,7 +61,20 @@ public class AnalysisFinal {
     }
 
     public static void main(String[] args) {
-        File file = new File("src/main/resources/excel/000002.xls");
+        ArrayList<File> files = new ArrayList<>();
+        FileUtil.listAllFiles(basePath, files);
+        for (File file : files) {
+            boolean succ = analysisXlsToFinal(file);
+            if (succ) {
+                System.out.println(file.getName() + "写入成功");
+            } else {
+                System.out.println(file.getName() + "写入失败");
+            }
+
+        }
+    }
+
+    private static boolean analysisXlsToFinal(File file) {
         List<List<Map<Integer, String>>> sheetsData = readXls(file);
         //结果
         ArrayList<List<String>> rowResults = new ArrayList<>();
@@ -119,6 +133,9 @@ public class AnalysisFinal {
         boolean succ = AnalysisResultToExcel.createExcelXls(finalXlsName, sheetNames, title);
         if (succ) {
             AnalysisResultToExcel.writeToExcelInTurn(finalXlsName, "result", rowResults);
+            return true;
+        } else {
+            return false;
         }
     }
 
