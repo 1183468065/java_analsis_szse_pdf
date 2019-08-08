@@ -12,6 +12,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * 用于将所有的xls表中单元格，经过分析出最终结果，写入到final中
+ */
 public class AnalysisExcelToFinal {
 
     private static String institutionidPropPath = "src/main/resources/institutionid.properties";
@@ -25,7 +28,6 @@ public class AnalysisExcelToFinal {
     private static int stockLen = 6;
 
     //excel 配置
-    private static HSSFWorkbook workbook = null;
     private static List<String> sheetNames = new ArrayList<>();
     private static List<String> title = new ArrayList<>();
     //excel 表头
@@ -129,7 +131,7 @@ public class AnalysisExcelToFinal {
             }
         }
 
-        String finalXlsName = baseAnalysisFinalPath + file.getName().substring(0, AnalysisPDFMain.stockLen) + ".xls";
+        String finalXlsName = baseAnalysisFinalPath + file.getName().substring(0, AnalysisPDFToResult.stockLen) + ".xls";
         boolean succ = AnalysisResultToExcel.createExcelXls(finalXlsName, sheetNames, title);
         if (succ) {
             AnalysisResultToExcel.writeToExcelInTurn(finalXlsName, "result", rowResults);

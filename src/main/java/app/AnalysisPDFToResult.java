@@ -11,7 +11,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AnalysisPDFMain {
+/**
+ * 用于将所有的PDF内容截取到result txt里面
+ */
+public class AnalysisPDFToResult {
 
     //pdf文件们所在目录
     private static String basePath = "src/main/resources/PDF/";

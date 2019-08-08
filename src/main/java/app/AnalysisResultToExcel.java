@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * 用于将所有的txt内容，通过分析，写入到每张xls内，用于后续处理
+ */
 public class AnalysisResultToExcel {
 
     //result文件们所在目录
@@ -33,7 +36,6 @@ public class AnalysisResultToExcel {
     private static int stockLen = 6;
 
     //excel 配置
-    private static HSSFWorkbook workbook = null;
     private static List<String> sheetNames = new ArrayList<>();
     private static List<String> title = new ArrayList<>();
     //excel 表头
@@ -72,7 +74,8 @@ public class AnalysisResultToExcel {
         FileUtil.listAllFiles(basePath, files);
         for (File file : files) {
             System.out.println("开始分析文件：" + file);
-            String xlsName = baseAnalysisResultPath + file.getName().substring(0, AnalysisPDFMain.stockLen) + ".xls";
+            String xlsName = baseAnalysisResultPath + file.getName().substring(0, AnalysisPDFToResult.stockLen) +
+                    ".xls";
             contentToExcel(file, xlsName);
         }
     }
@@ -163,7 +166,7 @@ public class AnalysisResultToExcel {
             System.out.println("文件：" + fileDir + "已存在");
             return false;
         }
-        if(!file.exists()){
+        if (!file.exists()) {
             //先得到文件的上级目录，并创建上级目录，在创建文件
             file.getParentFile().mkdir();
             try {
@@ -174,7 +177,7 @@ public class AnalysisResultToExcel {
             }
         }
         //创建workbook
-        workbook = new HSSFWorkbook();
+        HSSFWorkbook workbook = new HSSFWorkbook();
         //新建文件
         FileOutputStream fileOutputStream = null;
         HSSFRow row = null;
@@ -221,7 +224,7 @@ public class AnalysisResultToExcel {
         File file = new File(fileDir);
         FileOutputStream fileOutputStream = null;
         try {
-            workbook = new HSSFWorkbook(new FileInputStream(file));
+            HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(file));
             //文件流
             HSSFSheet sheet = workbook.getSheet(sheetName);
             //获取表头的列数
@@ -271,7 +274,7 @@ public class AnalysisResultToExcel {
         File file = new File(fileDir);
         FileOutputStream fileOutputStream = null;
         try {
-            workbook = new HSSFWorkbook(new FileInputStream(file));
+            HSSFWorkbook workbook = new HSSFWorkbook(new FileInputStream(file));
             //文件流
             HSSFSheet sheet = workbook.getSheet(sheetName);
             //获取表头的列数
